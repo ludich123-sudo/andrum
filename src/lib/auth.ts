@@ -37,7 +37,10 @@ export async function canLogIn(email: string): Promise<boolean> {
 export async function sendLoginLink(rawEmail: string) {
   const email = rawEmail.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-  if (!(await canLogIn(email))) return;
+  if (!(await canLogIn(email))) {
+    console.warn(`Inloggning nekad: ${email} är varken superadmin eller kopplad till en studio.`);
+    return;
+  }
   const token = crypto.randomBytes(32).toString('hex');
   must(
     await db().from('login_tokens').insert({
