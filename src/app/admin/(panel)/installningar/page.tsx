@@ -3,7 +3,7 @@ import { requireStudio } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { DAY_NAMES, getSettings } from '@/lib/settings';
 import { isTestMode, refreshStripeStatus } from '@/lib/stripe';
-import { bookingBaseUrl } from '@/lib/studio';
+import { bookingBaseUrl, studioAccent } from '@/lib/studio';
 import { TEMPLATE_VARIABLES, TemplateKey, TEMPLATES } from '@/lib/templates';
 import {
   connectStripeAction,
@@ -37,7 +37,7 @@ export default async function SettingsPage({
   const { data: tplRows } = await db().from('email_templates').select('*').eq('studio_id', studio.id);
   const custom = new Map((tplRows ?? []).map((r: any) => [r.key, r]));
   const url = bookingBaseUrl(studio);
-  const buttonHtml = `<a href="${url}" style="display:inline-block;background:${studio.accent_color};color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:600;font-family:sans-serif">Boka här</a>`;
+  const buttonHtml = `<a href="${url}" style="display:inline-block;background:${studioAccent(studio.accent_color)};color:#f4f2ec;padding:14px 26px;border-radius:999px;text-decoration:none;font-weight:700;letter-spacing:0.01em;font-family:Helvetica,Arial,sans-serif">Boka här</a>`;
 
   return (
     <>
@@ -119,7 +119,7 @@ export default async function SettingsPage({
               <label className="field"><span>Organisationsnummer</span><input name="org_nr" defaultValue={studio.org_nr ?? ''} /><span className="hint">Visas på kvitton.</span></label>
               <label className="field"><span>Hemsida</span><input name="website" defaultValue={studio.website ?? ''} placeholder="https://" /></label>
               <label className="field"><span>Logga (webbadress till bild)</span><input name="logo_url" defaultValue={studio.logo_url ?? ''} placeholder="https://…/logga.png" /></label>
-              <label className="field"><span>Färg</span><input name="accent_color" type="color" defaultValue={studio.accent_color} /></label>
+              <label className="field"><span>Färg</span><input name="accent_color" type="color" defaultValue={studioAccent(studio.accent_color)} /></label>
             </div>
             <label className="field"><span>Kort beskrivning på bokningssidan</span><textarea name="description" defaultValue={studio.description ?? ''} rows={3} /></label>
             <button className="btn primary">Spara</button>

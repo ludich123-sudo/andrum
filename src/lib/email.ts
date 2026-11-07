@@ -3,6 +3,7 @@
 import { db } from './db';
 import { env } from './env';
 import { EmailBlock, renderEmail, renderVars, TemplateKey, TEMPLATES } from './templates';
+import { studioAccent } from './studio';
 import { Studio } from './types';
 
 export type Attachment = { filename: string; content: string; contentType?: string }; // content = base64
@@ -37,9 +38,13 @@ export async function queueTemplated(opts: {
 }) {
   const tpl = await loadTemplate(opts.studio.id, opts.key);
   const vars = { studio: opts.studio.name, ...opts.vars };
+  const def = TEMPLATES[opts.key];
   const { html, text } = renderEmail({
     studioName: opts.studio.name,
-    accent: opts.studio.accent_color,
+    accent: studioAccent(opts.studio.accent_color),
+    eyebrow: def.eyebrow,
+    heading: renderVars(def.heading, vars),
+    preheader: renderVars(def.preheader, vars),
     bodyText: renderVars(tpl.body, vars),
     blocks: opts.blocks,
     footer: studioFooter(opts.studio),

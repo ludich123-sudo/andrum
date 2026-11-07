@@ -1,6 +1,6 @@
 import { MobileNav, SideNav } from '@/components/AdminNav';
 import { requireStudio } from '@/lib/auth';
-import { bookingBaseUrl } from '@/lib/studio';
+import { bookingBaseUrl, studioAccent } from '@/lib/studio';
 import { env } from '@/lib/env';
 import { logoutAction, switchStudioAction } from '../actions';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const { studio, studios, superadmin, email } = await requireStudio();
-  const accent = /^#[0-9a-f]{3,8}$/i.test(studio.accent_color) ? studio.accent_color : '#5b7a5e';
+  const accent = studioAccent(studio.accent_color);
   return (
     <div className="admin themed" style={{ ['--accent' as any]: accent }}>
       <aside className="admin-nav">

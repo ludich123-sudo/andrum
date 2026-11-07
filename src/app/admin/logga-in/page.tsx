@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <div className="login-wrap">
       <div className="login-card">
-        <div className="brandmark">{env.platformName}</div>
+        <div className="brandmark">{env.platformName}<i>.</i></div>
         <p className="muted mb3">Bokningar för yoga och behandlingar</p>
         <div className="card">
           {sent ? (

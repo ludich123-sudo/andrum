@@ -10,7 +10,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
   return (
     <div className="login-wrap">
       <div className="login-card">
-        <div className="brandmark">{env.platformName}</div>
+        <div className="brandmark">{env.platformName}<i>.</i></div>
         <div className="card mt2">
           <form action={verifyAction}>
             <h2>Välkommen tillbaka</h2>

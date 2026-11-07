@@ -15,7 +15,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   return (
     <div className="login-wrap">
       <div className="login-card" style={{ maxWidth: 480 }}>
-        <div className="brandmark">{env.platformName}</div>
+        <div className="brandmark">{env.platformName}<i>.</i></div>
         <div className="card mt2">
           {canCreate ? (
             <form action={onboardingAction}>

@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getStudioBySlug } from '@/lib/studio';
+import { getStudioBySlug, studioAccent } from '@/lib/studio';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +20,24 @@ export default async function StudioLayout({
   const { slug } = await params;
   const studio = await getStudioBySlug(slug);
   if (!studio) notFound();
-  const accent = /^#[0-9a-f]{3,8}$/i.test(studio.accent_color) ? studio.accent_color : '#5b7a5e';
   return (
-    <div className="themed" style={{ ['--accent' as any]: accent }}>
+    <div className="themed" style={{ ['--accent' as any]: studioAccent(studio.accent_color) }}>
+      <div className="topbar">
+        <div className="container">
+          <Link href={`/s/${slug}`} className="brand">
+            {studio.name}
+            <i>.</i>
+          </Link>
+          {studio.email && (
+            <a className="contact" href={`mailto:${studio.email}`}>
+              Kontakt
+            </a>
+          )}
+        </div>
+      </div>
       <div className="container">{children}</div>
       <footer className="public-footer container">
+        <span className="serif">Varmt välkommen.</span>
         {studio.name}
         {studio.address ? ` · ${studio.address}` : ''}
         {studio.email ? (

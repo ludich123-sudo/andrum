@@ -7,7 +7,7 @@ import { formatKr, vatIncluded } from './money';
 import { decideCancellation } from './policy';
 import { getSettings } from './settings';
 import { createCheckout, expireCheckout, refundPayment, retrieveCheckout } from './stripe';
-import { bookingBaseUrl, firstName, getStudioById, manageUrl } from './studio';
+import { bookingBaseUrl, firstName, getStudioById, manageUrl, studioAccent } from './studio';
 import { EmailBlock } from './templates';
 import { Booking, Customer, Series, Service, Session, Studio } from './types';
 import { capitalize, formatDateTime, formatDay, formatTime, toDateKey, addDaysKey, zonedToUtc } from './tz';
@@ -377,8 +377,11 @@ export async function notifyStudio(studio: Studio, subject: string, rows: [strin
   if (!studio.email) return;
   const { html, text } = renderEmail({
     studioName: studio.name,
-    accent: studio.accent_color,
-    bodyText: subject,
+    accent: studioAccent(studio.accent_color),
+    eyebrow: 'Notis till studion',
+    heading: subject,
+    preheader: rows.map(([, v]) => v).slice(0, 2).join(' · '),
+    bodyText: 'Det här har hänt i bokningssystemet:',
     blocks: [{ type: 'details', rows }],
     footer: studioFooter(studio),
   });
@@ -645,7 +648,10 @@ export async function messageParticipants(studio: Studio, sessionId: string, sub
   for (const b of bookings) {
     const { html, text: plain } = renderEmail({
       studioName: studio.name,
-      accent: studio.accent_color,
+      accent: studioAccent(studio.accent_color),
+      eyebrow: 'Meddelande',
+      heading: subject,
+      preheader: text.slice(0, 110),
       bodyText: `Hej ${firstName(b.customers?.name) || 'där'}!\n\n${text}`,
       blocks: [{ type: 'details', rows: whenRows({ ...b, kind: 'class' } as Booking, studio, [session]) }],
       footer: studioFooter(studio),

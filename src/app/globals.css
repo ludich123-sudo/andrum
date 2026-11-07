@@ -1,26 +1,32 @@
 /* Andrum – lugn, varm och tydlig. Accentfärgen sätts per studio via --accent. */
 :root {
-  --bg: #f6f3ee;
+  --bg: #f4f2ec;
   --surface: #ffffff;
-  --surface-2: #f0ece5;
-  --ink: #1f2421;
-  --ink-2: #565b56;
-  --ink-3: #8a8e88;
-  --line: #e4dfd6;
-  --accent: #5b7a5e;
-  --accent-ink: #ffffff;
-  --accent-soft: color-mix(in srgb, var(--accent) 12%, white);
+  --surface-2: #eceae2;
+  --ink: #12301f;
+  --ink-2: #4c5a52;
+  --ink-3: #87918a;
+  --line: #e4e1d7;
+  --accent: #1d4d38;
+  --accent-ink: #f4f2ec;
+  --accent-soft: #e3efe6;
+  --forest: #0f2a20;
+  --forest-2: #1d5a3f;
+  --lime: #c6f27a;
+  --mint: #4fbf8a;
+  --eyebrow: #1f7a4c;
   --danger: #b4483c;
   --danger-soft: #f8e7e4;
-  --ok: #3f7a4f;
-  --ok-soft: #e5f1e7;
-  --warn: #9a6b12;
-  --warn-soft: #faf0d9;
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(31, 36, 33, 0.04), 0 4px 18px rgba(31, 36, 33, 0.05);
-  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+  --ok: #1f7a4c;
+  --ok-soft: #e3f3e8;
+  --warn: #9a5a12;
+  --warn-soft: #fbeedc;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 1px 2px rgba(18, 48, 31, 0.03);
+  --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --display: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -34,9 +40,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; }
-h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0 0 0.4em; line-height: 1.2; }
-h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
-h2 { font-size: 1.45rem; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.4em; line-height: 1.1; color: var(--ink); }
+h1 { font-size: clamp(2rem, 4.5vw, 2.9rem); font-weight: 800; }
+h2 { letter-spacing: -0.025em; }
+.serif { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+.eyebrow { display: block; font-family: var(--sans); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--eyebrow); margin-bottom: 10px; }
+html { overflow-x: hidden; }
+h2 { font-size: 1.55rem; }
 h3 { font-size: 1.15rem; }
 p { margin: 0 0 0.8em; }
 small, .small { font-size: 0.875rem; }
@@ -249,3 +259,98 @@ details.box > .inner { padding: 0 18px 18px; }
 
 /* Räknar om mjuka accenttoner när --accent sätts per studio. */
 .themed { --accent-soft: color-mix(in srgb, var(--accent) 12%, white); }
+
+/* =====================================================================
+   Designlager: skogsgrönt, lime och krämvitt (samma känsla som PDF:en)
+   ===================================================================== */
+.themed { --accent-soft: color-mix(in srgb, var(--accent) 10%, #f4f2ec); }
+
+/* Kort, knappar, etiketter */
+.card { border-radius: var(--radius); border-color: var(--line); box-shadow: none; padding: 24px; }
+.card.link:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 10px 30px -18px rgba(18, 48, 31, 0.35); }
+.card h3 { font-size: 1.2rem; letter-spacing: -0.02em; }
+.btn { font-family: var(--sans); font-weight: 700; letter-spacing: 0.005em; border-color: var(--line); }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: none; background: var(--forest); border-color: var(--forest); }
+.btn.lime { background: var(--lime); border-color: var(--lime); color: var(--forest); }
+.btn.lime:hover { filter: brightness(0.96); }
+.badge { background: var(--surface-2); color: var(--ink-2); font-weight: 700; letter-spacing: 0.01em; }
+.badge.accent { background: #e8f6d6; color: #2f5d12; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: #fbe9d7; color: #a2541a; }
+.section-title { margin: 48px 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
+.section-title h2 { font-size: 1.7rem; }
+input:focus, select:focus, textarea:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(198, 242, 122, 0.55); }
+.check input { accent-color: var(--accent); }
+.notice.info { background: #eef6e4; color: var(--ink); }
+.summary { background: var(--bg); border: 1px solid var(--line); }
+.datelist li { border-bottom-color: var(--line); }
+.datelist { border-top: 1px solid var(--ink); }
+
+/* Publik sida: mörk toppsektion i full bredd */
+.topbar { background: var(--forest); color: #fff; }
+.topbar .container { display: flex; align-items: center; justify-content: space-between; min-height: 64px; }
+.topbar .brand { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; font-size: 1.05rem; text-decoration: none; color: #fff; }
+.topbar .brand i { color: var(--lime); font-style: normal; }
+.topbar .contact { color: rgba(255, 255, 255, 0.65); font-size: 0.85rem; text-decoration: none; }
+.topbar .contact:hover { color: #fff; }
+.hero {
+  background: radial-gradient(120% 140% at 85% 120%, var(--forest-2) 0%, var(--forest) 60%);
+  color: #fff;
+  padding: 36px 0 64px;
+}
+.hero .eyebrow { color: var(--lime); }
+.hero h1 { color: #fff; font-size: clamp(2.4rem, 7vw, 4rem); line-height: 1.02; letter-spacing: -0.04em; margin-bottom: 4px; }
+.hero .serif { color: var(--lime); font-size: clamp(2.2rem, 6.4vw, 3.7rem); line-height: 1.05; display: block; margin-bottom: 22px; }
+.hero p { color: rgba(255, 255, 255, 0.78); max-width: 560px; font-size: 1.05rem; line-height: 1.6; }
+.hero .logo { max-height: 56px; max-width: 200px; display: block; margin-bottom: 18px; }
+.hero .tabs { margin-top: 28px; }
+.hero .tabs a { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); color: #fff; }
+.hero .tabs a:hover { background: var(--lime); border-color: var(--lime); color: var(--forest); }
+.hero-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0; margin-top: 34px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.hero-points div { padding: 14px 16px 0 0; display: flex; gap: 10px; align-items: flex-start; font-size: 0.9rem; color: rgba(255, 255, 255, 0.82); }
+.hero-points b { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--mint); color: var(--forest); font-size: 0.75rem; }
+.offer .price { font-family: var(--display); font-size: 1.15rem; letter-spacing: -0.02em; }
+.timeitem { border-radius: var(--radius-sm); padding: 16px 18px; }
+.timeitem:hover { border-color: var(--ink); }
+.timeitem .time { font-family: var(--display); font-size: 1.05rem; }
+.daygroup > .dayname { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--eyebrow); }
+.datebtn { border-radius: var(--radius-sm); }
+.datebtn.on { background: var(--forest); border-color: var(--forest); color: #fff; }
+.datebtn.on .d { color: var(--lime); }
+.slot { border-radius: var(--radius-sm); }
+.slot.on { background: var(--forest); border-color: var(--forest); color: var(--lime); }
+.back { margin-top: 28px; color: var(--eyebrow); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; }
+.public-footer { margin: 72px 0 0; padding: 26px 16px 34px; border-top: 1px solid var(--line); color: var(--ink-3); }
+.public-footer .serif { color: var(--eyebrow); font-size: 1rem; display: block; margin-bottom: 6px; }
+.callout { background: #2b1716; color: #fff; border-radius: var(--radius); padding: 26px 28px; }
+.callout .eyebrow { color: #f5a07a; }
+.callout .serif { font-size: 1.35rem; line-height: 1.35; color: #fff; }
+
+/* Admin: mörkgrön sidomeny */
+.admin-nav { background: var(--forest); border-right: 0; color: #fff; }
+.admin-nav .brand { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+.admin-nav .brand small { color: rgba(255, 255, 255, 0.55); }
+.admin-nav a.nav { color: rgba(255, 255, 255, 0.72); }
+.admin-nav a.nav:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.admin-nav a.nav.on { background: var(--lime); color: var(--forest); }
+.admin-nav .btn { background: transparent; color: rgba(255, 255, 255, 0.75); border-color: rgba(255, 255, 255, 0.2); }
+.admin-nav .btn.ghost { border-color: transparent; }
+.admin-nav select { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: rgba(255, 255, 255, 0.2); }
+.admin-main .page-head h1 { letter-spacing: -0.035em; }
+.stat { border-radius: var(--radius); }
+.stat .n { font-family: var(--display); letter-spacing: -0.03em; font-size: 1.9rem; }
+.stat .l { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.meter > i { background: var(--mint); }
+.list { border-radius: var(--radius); }
+details.box { border-radius: var(--radius); }
+.mobile-nav a.on { color: var(--ink); }
+.mobile-nav a.on .ic { color: var(--mint); }
+.login-wrap { background: radial-gradient(120% 120% at 80% 110%, var(--forest-2) 0%, var(--forest) 62%); }
+.login-wrap .brandmark { font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; color: #fff; }
+.login-wrap .brandmark i { color: var(--lime); font-style: normal; }
+.login-wrap > .login-card > .muted { color: rgba(255, 255, 255, 0.7); }
+.cal .ev { background: #eaf4e3; border-left-color: var(--mint); }
+.cal .ev.course { background: #f4efe2; border-left-color: #b3873f; }
+.hero.bleed { width: 100vw; margin-left: calc(50% - 50vw); }

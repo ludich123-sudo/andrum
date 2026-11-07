@@ -52,8 +52,11 @@ export async function sendLoginLink(rawEmail: string) {
   const url = `${env.appUrl}/admin/verifiera?t=${token}`;
   const { html, text } = renderEmail({
     studioName: env.platformName,
-    accent: '#5b7a5e',
-    bodyText: 'Hej!\n\nKlicka på knappen för att logga in. Länken gäller i 30 minuter och kan bara användas en gång.',
+    accent: '#1d4d38',
+    eyebrow: 'Inloggning',
+    heading: 'Logga in på adminpanelen.',
+    preheader: 'Din inloggningslänk gäller i 30 minuter.',
+    bodyText: 'Klicka på knappen för att logga in. Länken gäller i 30 minuter och kan bara användas en gång.',
     blocks: [
       { type: 'button', label: 'Logga in', url },
       { type: 'note', text: 'Har du inte bett om att logga in kan du strunta i det här mejlet.' },

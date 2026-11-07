@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatKr } from '@/lib/money';
 import { getAppointmentServices, getClasses, getCourses } from '@/lib/public';
-import { getSettings } from '@/lib/settings';
+import { getSettings, PAYMENT_LABEL } from '@/lib/settings';
 import { getStudioBySlug } from '@/lib/studio';
 import { formatDay, formatTime, toDateKey, weekdayPlural, capitalize } from '@/lib/tz';
 
@@ -34,18 +34,29 @@ export default async function StudioPage({ params }: { params: Promise<{ slug: s
   }
 
   const empty = !courses.length && !classes.length && !services.length;
+  const kinds = [courses.length || classes.length ? 'yoga' : '', services.length ? 'behandlingar' : ''].filter(Boolean);
+  const tagline = kinds.length === 2 ? 'Yoga & behandlingar.' : kinds[0] === 'behandlingar' ? 'Behandlingar.' : 'Yoga för kropp och själ.';
 
   return (
     <main>
-      <header className="public-header">
-        {studio.logo_url && <img className="logo" src={studio.logo_url} alt={studio.name} />}
-        <h1 className="studio-name">{studio.name}</h1>
-        {studio.description && <p className="muted mt1" style={{ maxWidth: 560 }}>{studio.description}</p>}
-        <nav className="tabs" aria-label="Kategorier">
-          {courses.length > 0 && <a href="#kurser">Kurser</a>}
-          {classes.length > 0 && <a href="#pass">Pass</a>}
-          {services.length > 0 && <a href="#behandlingar">Behandlingar</a>}
-        </nav>
+      <header className="hero bleed">
+        <div className="container">
+          {studio.logo_url && <img className="logo" src={studio.logo_url} alt={studio.name} />}
+          <span className="eyebrow">Boka din plats</span>
+          <h1>{studio.name}</h1>
+          <span className="serif">{tagline}</span>
+          {studio.description && <p>{studio.description}</p>}
+          <nav className="tabs" aria-label="Kategorier">
+            {courses.length > 0 && <a href="#kurser">Kurser</a>}
+            {classes.length > 0 && <a href="#pass">Pass</a>}
+            {services.length > 0 && <a href="#behandlingar">Behandlingar</a>}
+          </nav>
+          <div className="hero-points">
+            <div><b>✓</b> Betala enkelt med {PAYMENT_LABEL[settings.paymentMethods]}</div>
+            <div><b>✓</b> Bekräftelse och påminnelse via mejl</div>
+            <div><b>✓</b> Avboka själv via länken i mejlet</div>
+          </div>
+        </div>
       </header>
 
       {empty && (
