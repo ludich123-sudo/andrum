@@ -125,10 +125,16 @@ export async function createCheckout(opts: {
   email: string;
   successUrl: string;
   cancelUrl: string;
+  paymentMethods?: 'swish' | 'swish_card' | 'all';
 }): Promise<{ id: string; url: string }> {
   const feeOre = Math.floor((opts.amountOre * Number(opts.studio.platform_fee_percent || 0)) / 100);
   const params: any = {
     mode: 'payment',
+    ...(opts.paymentMethods === 'swish'
+      ? { payment_method_types: ['swish'] }
+      : opts.paymentMethods === 'swish_card'
+        ? { payment_method_types: ['swish', 'card'] }
+        : {}),
     locale: 'sv',
     customer_email: opts.email,
     line_items: [

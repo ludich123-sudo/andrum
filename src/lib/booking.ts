@@ -201,11 +201,16 @@ export async function startBooking(input: StartBookingInput): Promise<{ url: str
       email,
       successUrl: `${base}/tack?b=${booking.manage_token}`,
       cancelUrl: `${base}/avbruten?b=${booking.manage_token}`,
+      paymentMethods: getSettings(studio.settings).paymentMethods,
     });
     await db().from('bookings').update({ stripe_checkout_id: checkout.id }).eq('id', booking.id);
     return { url: checkout.url, bookingId: booking.id };
   } catch (e: any) {
     await db().rpc('release_booking', { p_booking: booking.id, p_status: 'expired', p_by: 'system' });
+    console.error('Checkout-fel', e?.message);
+    if (/swish/i.test(e?.message ?? '')) {
+      throw new BookingError('Swish är inte aktiverat hos studion ännu. Kontakta studion så löser de det.');
+    }
     throw new BookingError('Betalningen kunde inte startas: ' + (e?.message ?? 'okänt fel'));
   }
 }

@@ -12,6 +12,7 @@ type Props = {
   isFree: boolean;
   terms: string;
   allowVouchers: boolean;
+  payLabel?: string;
 };
 
 export default function AppointmentPicker(p: Props) {
@@ -101,6 +102,7 @@ export default function AppointmentPicker(p: Props) {
             isFree={p.isFree}
             terms={p.terms}
             allowVouchers={p.allowVouchers}
+            payLabel={p.payLabel}
           />
         </div>
       )}

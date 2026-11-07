@@ -235,6 +235,15 @@ export async function saveRulesAction(f: FormData) {
   go('/admin/installningar', { ok: 'Reglerna är sparade.' });
 }
 
+export async function savePaymentMethodsAction(f: FormData) {
+  const { studio, email } = await requireStudio();
+  const v = str(f, 'paymentMethods');
+  const paymentMethods = v === 'swish_card' || v === 'all' ? v : 'swish';
+  await patchSettings(studio.id, studio.settings, { paymentMethods });
+  await audit(studio.id, email, 'settings.payment_methods', { paymentMethods });
+  go('/admin/installningar', { ok: 'Betalsätten är sparade.' });
+}
+
 export async function saveTemplateAction(f: FormData) {
   const { studio, email } = await requireStudio();
   const key = str(f, 'key') as TemplateKey;

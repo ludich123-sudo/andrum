@@ -1,6 +1,14 @@
 // Studions inställningar. Allt har ett standardvärde så att en ny studio
 // kan gå live utan att röra något.
 
+export type PaymentMethods = 'swish' | 'swish_card' | 'all';
+
+export const PAYMENT_LABEL: Record<PaymentMethods, string> = {
+  swish: 'Swish',
+  swish_card: 'Swish eller kort',
+  all: 'Swish, kort och fler betalsätt',
+};
+
 export type OpeningHour = { day: number; open: boolean; start: string; end: string };
 
 export type StudioSettings = {
@@ -18,6 +26,7 @@ export type StudioSettings = {
   terms: string;
   bookingNote: string;
   allowVouchers: boolean;
+  paymentMethods: PaymentMethods;
 };
 
 export const DAY_NAMES = ['', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
@@ -44,6 +53,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
     'Avbokning sker via länken i din bekräftelse.',
   bookingNote: '',
   allowVouchers: true,
+  paymentMethods: 'swish',
 };
 
 export function getSettings(raw: unknown): StudioSettings {

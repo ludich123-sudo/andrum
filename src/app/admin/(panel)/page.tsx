@@ -32,7 +32,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const weekBooked = visible.reduce((a, s) => a + (taken.get(s.id) ?? 0), 0);
 
   const setupSteps = [
-    { done: !!studio.stripe_charges_enabled, label: 'Koppla Stripe för att ta betalt (Swish och kort)', href: '/admin/installningar#betalning' },
+    { done: !!studio.stripe_charges_enabled, label: 'Koppla Stripe för att ta betalt med Swish', href: '/admin/installningar#betalning' },
     { done: !!studio.address && !!studio.email, label: 'Fyll i adress och e-post', href: '/admin/installningar#uppgifter' },
     { done: (servicesCount.count ?? 0) > 0 && sessions.length > 0, label: 'Lägg in ditt första pass eller din första kurs', href: '/admin/kurs/ny' },
   ];

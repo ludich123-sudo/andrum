@@ -18,6 +18,7 @@ type Props = {
   prefillName?: string;
   disabled?: boolean;
   submitLabel?: string;
+  payLabel?: string;
 };
 
 export default function BookingForm(p: Props) {
@@ -111,7 +112,7 @@ export default function BookingForm(p: Props) {
         {busy ? 'Ett ögonblick…' : p.submitLabel ?? (p.isFree ? 'Boka' : `Boka och betala ${p.priceLabel}`)}
       </button>
       {!p.isFree && (
-        <p className="small faint center mt1 mb0">Du betalar säkert med Swish eller kort via Stripe.</p>
+        <p className="small faint center mt1 mb0">Du betalar säkert med {p.payLabel ?? 'Swish'} via Stripe.</p>
       )}
     </form>
   );

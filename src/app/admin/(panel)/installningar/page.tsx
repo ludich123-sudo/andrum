@@ -10,6 +10,7 @@ import {
   logoutAction,
   refreshStripeAction,
   saveHoursAction,
+  savePaymentMethodsAction,
   saveProfileAction,
   saveRulesAction,
   saveTemplateAction,
@@ -44,11 +45,11 @@ export default async function SettingsPage({
         <h1>Inställningar</h1>
       </div>
       <Flash ok={sp.ok} err={sp.err} />
-      {sp.stripe === 'klar' && stripeReady && <div className="notice ok">Stripe är kopplat. Nu kan kunderna betala med Swish och kort.</div>}
+      {sp.stripe === 'klar' && stripeReady && <div className="notice ok">Stripe är kopplat. Kom ihåg att slå på Swish i ditt Stripe-konto (se Betalning nedan).</div>}
 
       <details className="box" id="betalning" open={!stripeReady}>
         <summary>
-          Betalning (Swish och kort)
+          Betalning
           {stripeReady ? <span className="badge ok">Klar</span> : <span className="badge warn">Inte kopplad</span>}
         </summary>
         <div className="inner">
@@ -60,6 +61,17 @@ export default async function SettingsPage({
                 Swish slår du på i Stripe under Settings → Payment methods → Swish. Utbetalningar, kvitton och bokföringsunderlag
                 hittar du i Stripe.
               </p>
+              <form action={savePaymentMethodsAction} className="mb2">
+                <label className="field" style={{ maxWidth: 360 }}>
+                  <span>Kunderna kan betala med</span>
+                  <select name="paymentMethods" defaultValue={s.paymentMethods}>
+                    <option value="swish">Bara Swish</option>
+                    <option value="swish_card">Swish och kort</option>
+                    <option value="all">Alla betalsätt som är på i Stripe</option>
+                  </select>
+                </label>
+                <button className="btn primary small">Spara</button>
+              </form>
               <form action={refreshStripeAction}><button className="btn small">Kontrollera kopplingen</button></form>
             </>
           ) : (
