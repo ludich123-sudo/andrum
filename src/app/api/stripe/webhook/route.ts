@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   try {
     event = stripe().webhooks.constructEvent(body, sig, secret);
   } catch (e: any) {
+    console.error('Stripe-webhook: fel signatur. Tryck "Återställ Stripe-webhook" på System-sidan.', e?.message);
     return NextResponse.json({ error: `Bad signature: ${e?.message}` }, { status: 400 });
   }
 

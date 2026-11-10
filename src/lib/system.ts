@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 import { db, getConfig, setConfig } from './db';
 import { env, REQUIRED_ENV } from './env';
-import { ensureWebhook, webhookSecret } from './stripe';
+import { ensureWebhook, ourWebhookEndpoints, webhookSecret } from './stripe';
 
 export type Check = { label: string; ok: boolean; detail: string; fix?: string };
 
@@ -12,6 +12,11 @@ export async function ensureCron(): Promise<{ ok: boolean; message: string }> {
   if ((await getConfig('cron_url')) !== url) await setConfig('cron_url', url);
   if (!(await getConfig('cron_secret'))) await setConfig('cron_secret', crypto.randomBytes(24).toString('hex'));
   return { ok: true, message: 'Automatiken är inställd' };
+}
+
+export async function resetWebhook(): Promise<string> {
+  const r = await ensureWebhook(true);
+  return r.message;
 }
 
 export async function runSetup(): Promise<string[]> {
@@ -60,12 +65,29 @@ export async function healthChecks(): Promise<Check[]> {
     fix: !cronUrl ? 'Tryck på "Kör installation"' : tickAge === null || tickAge >= 20 ? 'Kontrollera att pg_cron och pg_net är på i Supabase (Database → Extensions)' : undefined,
   });
 
-  const hookOk = !!env.stripeWebhookSecret || !!(await webhookSecret());
+  const hookSecret = !!env.stripeWebhookSecret || !!(await webhookSecret());
+  let hookCount = -1;
+  let storedId: string | null = null;
+  try {
+    hookCount = (await ourWebhookEndpoints()).length;
+    storedId = await getConfig(`stripe_${env.stripeSecretKey.includes('_test_') ? 'test' : 'live'}_webhook_id`);
+  } catch {
+    /* Stripe svarar inte – visas nedan */
+  }
+  const hookOk = hookSecret && (hookCount === 1 || !!env.stripeWebhookSecret);
   checks.push({
     label: 'Stripe-webhook',
     ok: hookOk,
-    detail: hookOk ? 'Klar' : 'Inte skapad',
-    fix: hookOk ? undefined : 'Tryck på "Kör installation"',
+    detail: !hookSecret
+      ? 'Inte skapad'
+      : hookCount > 1
+        ? `${hookCount} webhooks pekar hit – dubbletter gör att leveranser misslyckas`
+        : hookCount === 0
+          ? 'Webhooken finns inte längre hos Stripe'
+          : hookCount < 0
+            ? 'Kunde inte kontrollera hos Stripe'
+            : "Klar – exakt en webhook",
+    fix: hookOk ? undefined : 'Tryck på "Återställ Stripe-webhook"',
   });
 
   const { count: failed } = await db()

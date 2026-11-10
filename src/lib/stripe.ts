@@ -33,24 +33,43 @@ export async function webhookSecret(): Promise<string | null> {
   return getConfig(cfgKey('webhook_secret'));
 }
 
-/** Skapar Stripe-webhooken automatiskt (en gång). */
-export async function ensureWebhook(): Promise<{ ok: boolean; message: string }> {
+const webhookUrl = () => `${env.appUrl}/api/stripe/webhook`;
+
+/** Alla webhooks hos Stripe som pekar på den här appen. */
+export async function ourWebhookEndpoints() {
+  const list = await stripe().webhookEndpoints.list({ limit: 100 });
+  return list.data.filter((e: any) => e.url === webhookUrl());
+}
+
+/**
+ * Skapar Stripe-webhooken. Med force = true (eller om det finns dubbletter) tas alla
+ * gamla webhooks till appen bort först, så att exakt en finns kvar – den vi har nyckeln till.
+ */
+export async function ensureWebhook(force = false): Promise<{ ok: boolean; message: string }> {
   if (!env.stripeSecretKey) return { ok: false, message: 'STRIPE_SECRET_KEY saknas' };
   if (!env.appUrl) return { ok: false, message: 'NEXT_PUBLIC_APP_URL saknas' };
   if (env.stripeWebhookSecret) return { ok: true, message: 'Webhook-nyckel finns i miljövariabler' };
-  const url = `${env.appUrl}/api/stripe/webhook`;
-  const existingId = await getConfig(cfgKey('webhook_id'));
-  const existingUrl = await getConfig(cfgKey('webhook_url'));
-  const existingSecret = await getConfig(cfgKey('webhook_secret'));
-  if (existingId && existingSecret && existingUrl === url) {
-    return { ok: true, message: 'Webhook redan skapad' };
-  }
+  const url = webhookUrl();
   try {
-    if (existingId) {
+    const existingId = await getConfig(cfgKey('webhook_id'));
+    const existingSecret = await getConfig(cfgKey('webhook_secret'));
+    const endpoints = await ourWebhookEndpoints();
+    const healthy =
+      !force && existingId && existingSecret && endpoints.length === 1 && endpoints[0].id === existingId;
+    if (healthy) return { ok: true, message: 'Webhook redan skapad' };
+
+    for (const e of endpoints) {
+      try {
+        await stripe().webhookEndpoints.del(e.id);
+      } catch {
+        /* redan borttagen */
+      }
+    }
+    if (existingId && !endpoints.some((e: any) => e.id === existingId)) {
       try {
         await stripe().webhookEndpoints.del(existingId);
       } catch {
-        /* redan borttagen */
+        /* finns inte */
       }
     }
     const endpoint = await stripe().webhookEndpoints.create({
@@ -62,7 +81,11 @@ export async function ensureWebhook(): Promise<{ ok: boolean; message: string }>
     await setConfig(cfgKey('webhook_id'), endpoint.id);
     await setConfig(cfgKey('webhook_url'), url);
     await setConfig(cfgKey('webhook_secret'), endpoint.secret as string);
-    return { ok: true, message: 'Webhook skapad' };
+    const removed = endpoints.length;
+    return {
+      ok: true,
+      message: removed ? `Webhook återställd (${removed} gammal/gamla borttagna)` : 'Webhook skapad',
+    };
   } catch (e: any) {
     return { ok: false, message: e?.message ?? String(e) };
   }

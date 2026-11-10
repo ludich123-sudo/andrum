@@ -6,7 +6,7 @@ import { healthChecks, runSetup } from '@/lib/system';
 import { getConfig } from '@/lib/db';
 import { isTestMode, webhookSecret } from '@/lib/stripe';
 import { Studio } from '@/lib/types';
-import { runSetupAction, superCreateStudioAction, superOpenStudioAction, superUpdateStudioAction } from '../../actions';
+import { resetWebhookAction, runSetupAction, superCreateStudioAction, superOpenStudioAction, superUpdateStudioAction } from '../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,9 +38,14 @@ export default async function SystemPage({ searchParams }: { searchParams: Promi
           <h1>System</h1>
           <p className="muted mb0">Bara du ser den här sidan.</p>
         </div>
-        <form action={runSetupAction}>
-          <button className="btn primary">Kör installation</button>
-        </form>
+        <div className="row">
+          <form action={resetWebhookAction}>
+            <button className="btn">Återställ Stripe-webhook</button>
+          </form>
+          <form action={runSetupAction}>
+            <button className="btn primary">Kör installation</button>
+          </form>
+        </div>
       </div>
       <Flash ok={sp.ok} err={sp.err} />
       {autoRan.length > 0 && <div className="notice info">Installerade automatiskt: {autoRan.join(' · ')}</div>}

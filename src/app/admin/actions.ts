@@ -28,7 +28,7 @@ import { env, isSuperadmin } from '@/lib/env';
 import { parseKr } from '@/lib/money';
 import { DEFAULT_SETTINGS, getSettings } from '@/lib/settings';
 import { connectOnboardingLink, refreshStripeStatus } from '@/lib/stripe';
-import { runSetup } from '@/lib/system';
+import { resetWebhook, runSetup } from '@/lib/system';
 import { TemplateKey, TEMPLATES } from '@/lib/templates';
 import { Service, Session } from '@/lib/types';
 import { addDaysKey, zonedToUtc } from '@/lib/tz';
@@ -155,6 +155,17 @@ export async function superOpenStudioAction(f: FormData) {
   await requireSuperadmin();
   await chooseStudio(str(f, 'id'));
   go('/admin');
+}
+
+export async function resetWebhookAction() {
+  await requireSuperadmin();
+  let msg = '';
+  try {
+    msg = await resetWebhook();
+  } catch (e: any) {
+    go('/admin/system', { err: errMsg(e) });
+  }
+  go('/admin/system', { ok: `Stripe: ${msg}` });
 }
 
 export async function runSetupAction() {
