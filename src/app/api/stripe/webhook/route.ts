@@ -49,7 +49,7 @@ async function handle(event: any) {
       const studio = await getStudioById(booking.studio_id);
       const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id ?? null;
       const method = studio ? await paymentMethodLabel(studio, pi) : 'Stripe';
-      await finalizeBooking(bookingId, { paidOre: obj.amount_total ?? 0, method, paymentIntent: pi });
+      await finalizeBooking(bookingId, { paidOre: obj.amount_total ?? 0, method, provider: 'stripe', paymentIntent: pi });
       return;
     }
     case 'checkout.session.expired':

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { bookingSessions, getBookingByToken, syncFromStripe } from '@/lib/booking';
+import { bookingSessions, getBookingByToken } from '@/lib/booking';
+import { syncPayment } from '@/lib/payments';
+import { redirect } from 'next/navigation';
 import { formatKr } from '@/lib/money';
 import { getStudioBySlug } from '@/lib/studio';
 import { capitalize, formatDay, formatTime } from '@/lib/tz';
@@ -22,8 +24,12 @@ export default async function ThanksPage({
   if (!booking || booking.studio_id !== studio.id) notFound();
 
   if (booking.status === 'pending') {
-    await syncFromStripe(booking, studio);
+    await syncPayment(booking, studio);
     booking = (await getBookingByToken(b))!;
+  }
+
+  if (booking.status === 'pending' && booking.payment_provider === 'swish') {
+    redirect(`/s/${slug}/betala?b=${booking.manage_token}`);
   }
 
   if (booking.status === 'pending') {

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getSettings } from '@/lib/settings';
 import { getStudioBySlug, studioAccent } from '@/lib/studio';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,9 @@ export default async function StudioLayout({
             {studio.name}
             <i>.</i>
           </Link>
+          {studio.swish_mode === 'demo' && getSettings(studio.settings).paymentProvider !== 'stripe' && (
+            <span className="testbadge" title="Inga riktiga betalningar görs">Testläge</span>
+          )}
           {studio.email && (
             <a className="contact" href={`mailto:${studio.email}`}>
               Kontakt

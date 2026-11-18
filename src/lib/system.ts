@@ -23,8 +23,10 @@ export async function runSetup(): Promise<string[]> {
   const out: string[] = [];
   const cron = await ensureCron();
   out.push(`Automatik: ${cron.message}`);
-  const hook = await ensureWebhook();
-  out.push(`Stripe: ${hook.message}`);
+  if (env.stripeSecretKey) {
+    const hook = await ensureWebhook();
+    out.push(`Stripe: ${hook.message}`);
+  }
   return out;
 }
 
@@ -40,11 +42,12 @@ export async function healthChecks(): Promise<Check[]> {
   try {
     const v = await getConfig('schema_version');
     dbOk = !!v;
+    const current = Number(v ?? 0) >= 2;
     checks.push({
       label: 'Databas',
-      ok: dbOk,
-      detail: dbOk ? `Schema version ${v}` : 'Schemat är inte installerat',
-      fix: dbOk ? undefined : 'Kör supabase/schema.sql i Supabase → SQL Editor',
+      ok: dbOk && current,
+      detail: !dbOk ? 'Schemat är inte installerat' : current ? `Schema version ${v}` : `Schema version ${v} – en uppdatering finns`,
+      fix: dbOk && current ? undefined : 'Kör hela supabase/schema.sql i Supabase → SQL Editor (går att köra flera gånger)',
     });
   } catch (e: any) {
     checks.push({ label: 'Databas', ok: false, detail: e?.message ?? 'Ingen kontakt', fix: 'Kontrollera Supabase-nycklarna' });
@@ -65,30 +68,32 @@ export async function healthChecks(): Promise<Check[]> {
     fix: !cronUrl ? 'Tryck på "Kör installation"' : tickAge === null || tickAge >= 20 ? 'Kontrollera att pg_cron och pg_net är på i Supabase (Database → Extensions)' : undefined,
   });
 
-  const hookSecret = !!env.stripeWebhookSecret || !!(await webhookSecret());
-  let hookCount = -1;
-  let storedId: string | null = null;
-  try {
-    hookCount = (await ourWebhookEndpoints()).length;
-    storedId = await getConfig(`stripe_${env.stripeSecretKey.includes('_test_') ? 'test' : 'live'}_webhook_id`);
-  } catch {
-    /* Stripe svarar inte – visas nedan */
+  if (env.stripeSecretKey) {
+    const hookSecret = !!env.stripeWebhookSecret || !!(await webhookSecret());
+    let hookCount = -1;
+    let storedId: string | null = null;
+    try {
+      hookCount = (await ourWebhookEndpoints()).length;
+      storedId = await getConfig(`stripe_${env.stripeSecretKey.includes('_test_') ? 'test' : 'live'}_webhook_id`);
+    } catch {
+      /* Stripe svarar inte – visas nedan */
+    }
+    const hookOk = hookSecret && (hookCount === 1 || !!env.stripeWebhookSecret);
+    checks.push({
+      label: 'Stripe-webhook',
+      ok: hookOk,
+      detail: !hookSecret
+        ? 'Inte skapad'
+        : hookCount > 1
+          ? `${hookCount} webhooks pekar hit – dubbletter gör att leveranser misslyckas`
+          : hookCount === 0
+            ? 'Webhooken finns inte längre hos Stripe'
+            : hookCount < 0
+              ? 'Kunde inte kontrollera hos Stripe'
+              : "Klar – exakt en webhook",
+      fix: hookOk ? undefined : 'Tryck på "Återställ Stripe-webhook"',
+    });
   }
-  const hookOk = hookSecret && (hookCount === 1 || !!env.stripeWebhookSecret);
-  checks.push({
-    label: 'Stripe-webhook',
-    ok: hookOk,
-    detail: !hookSecret
-      ? 'Inte skapad'
-      : hookCount > 1
-        ? `${hookCount} webhooks pekar hit – dubbletter gör att leveranser misslyckas`
-        : hookCount === 0
-          ? 'Webhooken finns inte längre hos Stripe'
-          : hookCount < 0
-            ? 'Kunde inte kontrollera hos Stripe'
-            : "Klar – exakt en webhook",
-    fix: hookOk ? undefined : 'Tryck på "Återställ Stripe-webhook"',
-  });
 
   const { count: failed } = await db()
     .from('outbox')

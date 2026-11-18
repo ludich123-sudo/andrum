@@ -49,7 +49,7 @@ export default async function SystemPage({ searchParams }: { searchParams: Promi
       </div>
       <Flash ok={sp.ok} err={sp.err} />
       {autoRan.length > 0 && <div className="notice info">Installerade automatiskt: {autoRan.join(' · ')}</div>}
-      {env.stripeSecretKey && isTestMode() && <div className="notice warn">Stripe körs i testläge.</div>}
+
       <div className={`notice ${allOk ? 'ok' : 'warn'}`}>
         {allOk ? 'Allt fungerar.' : 'Något behöver åtgärdas – se listan nedan. Tryck på "Kör installation" först.'}
       </div>
@@ -75,7 +75,7 @@ export default async function SystemPage({ searchParams }: { searchParams: Promi
             <span>
               {st.name} <span className="small muted" style={{ fontWeight: 400 }}>/{st.slug}</span>
             </span>
-            {st.stripe_charges_enabled ? <span className="badge ok">Stripe klar</span> : <span className="badge warn">Ingen Stripe</span>}
+            {st.swish_mode === 'live' && st.swish_cert_pem ? <span className="badge ok">Swish live</span> : st.swish_mode === 'demo' ? <span className="testbadge">Swish testläge</span> : <span className="badge warn">Ingen betalning</span>}
           </summary>
           <div className="inner">
             <p className="small muted">

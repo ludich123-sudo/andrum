@@ -7,11 +7,15 @@ import { getStudioById, manageUrl } from './studio';
 import { Booking, Session, Studio } from './types';
 import { capitalize, formatDay, formatTime } from './tz';
 import { processAllWaitlists } from './waitlist';
+import { syncPendingSwish } from './payments';
 import { buildIcs } from './ics';
 import { firstName } from './studio';
 
 export async function tick() {
   const result: Record<string, number> = {};
+
+  // 0. Swish-betalningar som väntar: fråga Swish direkt (om callbacken inte kom fram).
+  result.swishSynced = await syncPendingSwish();
 
   // 1. Reservationer som aldrig betalades släpps.
   const { data: stale } = await db()

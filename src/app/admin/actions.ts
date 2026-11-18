@@ -24,6 +24,17 @@ import {
   startBooking,
 } from '@/lib/booking';
 import { audit, db, must } from '@/lib/db';
+import { swishCreds } from '@/lib/payments';
+import { getStudioById } from '@/lib/studio';
+import {
+  decryptSecret,
+  encryptSecret,
+  generateSwishCsr,
+  normalizeSwishNumber,
+  splitPemCerts,
+  testSwishConnection,
+  validateSwishCertificate,
+} from '@/lib/swish';
 import { env, isSuperadmin } from '@/lib/env';
 import { parseKr } from '@/lib/money';
 import { DEFAULT_SETTINGS, getSettings } from '@/lib/settings';
@@ -604,4 +615,130 @@ export async function createVoucherAction(f: FormData) {
   const code = await issueCredit(studio, to, str(f, 'name') || null, amount, str(f, 'note') || 'Skapad av studion', str(f, 'kind') === 'gift' ? 'gift' : 'credit');
   await audit(studio.id, email, 'voucher.created', { to, amount });
   go('/admin/bokningar', { ok: `Koden ${code} är skapad och skickad till ${to}.` });
+}
+
+// ---------- Swish ----------
+
+const SWISH_BACK = '/admin/installningar#betalning';
+
+export async function saveSwishNumberAction(f: FormData) {
+  const { studio, email } = await requireStudio();
+  const number = normalizeSwishNumber(str(f, 'swish_number'));
+  if (!number) go(SWISH_BACK, { err: 'Swishnumret ska vara 10 siffror och börja med 123.' });
+  must(await db().from('studios').update({ swish_number: number }).eq('id', studio.id));
+  await audit(studio.id, email, 'swish.number', { number });
+  go(SWISH_BACK, { ok: 'Swishnumret är sparat.' });
+}
+
+export async function createSwishCsrAction() {
+  const { studio, email } = await requireStudio();
+  if (!studio.swish_number) go(SWISH_BACK, { err: 'Fyll i Swishnumret först.' });
+  const { keyPem, csrPem } = generateSwishCsr(studio.swish_number!, studio.name);
+  must(
+    await db()
+      .from('studios')
+      .update({ swish_pending_key_enc: encryptSecret(keyPem), swish_csr_pem: csrPem })
+      .eq('id', studio.id),
+  );
+  await audit(studio.id, email, 'swish.csr');
+  go(SWISH_BACK, { ok: 'Certifikatbegäran är skapad. Kopiera koden och följ steg 3.' });
+}
+
+export async function saveSwishCertAction(f: FormData) {
+  const { studio, email } = await requireStudio();
+  let text = str(f, 'cert');
+  const file = f.get('certfile');
+  if (!text && file && typeof file === 'object' && 'text' in file && (file as File).size > 0) {
+    if ((file as File).size > 200_000) go(SWISH_BACK, { err: 'Filen är för stor för att vara ett certifikat.' });
+    text = await (file as File).text();
+  }
+  if (!text) go(SWISH_BACK, { err: 'Välj certifikatfilen eller klistra in innehållet.' });
+
+  // Certifikatet ska höra ihop med den senaste begäran (eller den nuvarande nyckeln).
+  const candidates: { enc: string; pending: boolean }[] = [];
+  if (studio.swish_pending_key_enc) candidates.push({ enc: studio.swish_pending_key_enc, pending: true });
+  if (studio.swish_key_enc) candidates.push({ enc: studio.swish_key_enc, pending: false });
+  if (!candidates.length) go(SWISH_BACK, { err: 'Skapa en certifikatbegäran först (steg 2).' });
+
+  let saved: { validTo: Date; pending: boolean; enc: string } | null = null;
+  let lastErr = '';
+  for (const c of candidates) {
+    try {
+      const v = validateSwishCertificate(text, decryptSecret(c.enc));
+      saved = { validTo: v.validTo, pending: c.pending, enc: c.enc };
+      break;
+    } catch (e: any) {
+      lastErr = e?.message ?? String(e);
+    }
+  }
+  if (!saved) go(SWISH_BACK, { err: lastErr || 'Certifikatet kunde inte läsas.' });
+  const certs = splitPemCerts(text).join('');
+  must(
+    await db()
+      .from('studios')
+      .update({
+        swish_cert_pem: certs,
+        swish_key_enc: saved!.enc,
+        swish_cert_expires_at: saved!.validTo.toISOString(),
+        ...(saved!.pending ? { swish_pending_key_enc: null, swish_csr_pem: null } : {}),
+      })
+      .eq('id', studio.id),
+  );
+  await audit(studio.id, email, 'swish.certificate', { validTo: saved!.validTo });
+  const fresh = (await getStudioById(studio.id))!;
+  const creds = swishCreds(fresh);
+  const t = creds ? await testSwishConnection(creds) : { ok: false, message: 'Uppgifter saknas.' };
+  go(
+    SWISH_BACK,
+    t.ok
+      ? { ok: `Certifikatet är sparat och anslutningen till Swish fungerar. Tryck "Ta emot riktiga betalningar" när du är redo.` }
+      : { err: `Certifikatet är sparat, men testet misslyckades: ${t.message}` },
+  );
+}
+
+export async function testSwishAction() {
+  const { studio } = await requireStudio();
+  const creds = swishCreds(studio);
+  if (!creds) go(SWISH_BACK, { err: 'Swishnummer eller certifikat saknas.' });
+  const t = await testSwishConnection(creds!);
+  go(SWISH_BACK, t.ok ? { ok: t.message } : { err: t.message });
+}
+
+export async function setSwishModeAction(f: FormData) {
+  const { studio, email } = await requireStudio();
+  const mode = str(f, 'mode');
+  if (!['off', 'demo', 'live'].includes(mode)) go(SWISH_BACK);
+  if (mode === 'live') {
+    const creds = swishCreds(studio);
+    if (!creds) go(SWISH_BACK, { err: 'Lägg in Swishnummer och certifikat först.' });
+    const t = await testSwishConnection(creds!);
+    if (!t.ok) go(SWISH_BACK, { err: `Kan inte gå live ännu: ${t.message}` });
+  }
+  must(await db().from('studios').update({ swish_mode: mode }).eq('id', studio.id));
+  await patchSettings(studio.id, studio.settings, { paymentProvider: 'swish' });
+  await audit(studio.id, email, 'swish.mode', { mode });
+  go(SWISH_BACK, {
+    ok:
+      mode === 'live'
+        ? 'Klart! Kunderna betalar nu med riktig Swish direkt till ditt konto.'
+        : mode === 'demo'
+          ? 'Testläget är på. Inga riktiga pengar dras.'
+          : 'Onlinebetalning är avstängd.',
+  });
+}
+
+export async function saveSwishCaAction(f: FormData) {
+  const { studio } = await requireStudio();
+  const ca = String(f.get('ca') ?? '').trim();
+  if (ca && !splitPemCerts(ca).length) go(SWISH_BACK, { err: 'Det ser inte ut som ett certifikat.' });
+  must(await db().from('studios').update({ swish_ca_pem: ca || null }).eq('id', studio.id));
+  go(SWISH_BACK, { ok: 'Sparat.' });
+}
+
+export async function setPaymentProviderAction(f: FormData) {
+  const { studio, email } = await requireStudio();
+  const provider = str(f, 'provider') === 'stripe' ? 'stripe' : 'swish';
+  await patchSettings(studio.id, studio.settings, { paymentProvider: provider });
+  await audit(studio.id, email, 'settings.payment_provider', { provider });
+  go(SWISH_BACK, { ok: provider === 'stripe' ? 'Kunderna betalar nu med kort via Stripe.' : 'Kunderna betalar nu med Swish.' });
 }

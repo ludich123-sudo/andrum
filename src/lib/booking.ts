@@ -6,7 +6,15 @@ import { buildIcs, IcsEvent } from './ics';
 import { formatKr, vatIncluded } from './money';
 import { decideCancellation } from './policy';
 import { getSettings } from './settings';
-import { createCheckout, expireCheckout, refundPayment, retrieveCheckout } from './stripe';
+import { createCheckout } from './stripe';
+import {
+  abortPendingPayment,
+  canRefundMoney,
+  paymentProvider,
+  refundBookingPayment,
+  startSwishPayment,
+  syncPayment,
+} from './payments';
 import { bookingBaseUrl, firstName, getStudioById, manageUrl, studioAccent } from './studio';
 import { EmailBlock } from './templates';
 import { Booking, Customer, Series, Service, Session, Studio } from './types';
@@ -180,9 +188,24 @@ export async function startBooking(input: StartBookingInput): Promise<{ url: str
     return { url: `${base}/tack?b=${booking.manage_token}`, bookingId: booking.id };
   }
 
+  // Swish Handel (standard): kunden skickas till vår betalsida med Swish-knapp och QR-kod.
+  if (paymentProvider(studio) === 'swish') {
+    try {
+      await startSwishPayment(studio, booking);
+    } catch (e: any) {
+      await db().rpc('release_booking', { p_booking: booking.id, p_status: 'expired', p_by: 'system' });
+      console.error('Swish-fel', e?.message);
+      throw new BookingError(
+        /kan inte ta emot/.test(e?.message ?? '') ? e.message : 'Swish-betalningen kunde inte startas. Försök igen om en stund.',
+      );
+    }
+    return { url: `${base}/betala?b=${booking.manage_token}`, bookingId: booking.id };
+  }
+
+  // Kort via Stripe (valfritt).
   if (!studio.stripe_account_id || !studio.stripe_charges_enabled) {
     await db().rpc('release_booking', { p_booking: booking.id, p_status: 'expired', p_by: 'system' });
-    throw new BookingError('Studion kan inte ta emot betalningar online just nu. Kontakta studion direkt.');
+    throw new BookingError('Studion kan inte ta emot kortbetalningar just nu. Kontakta studion direkt.');
   }
 
   const sessions = await bookingSessions(booking);
@@ -203,14 +226,11 @@ export async function startBooking(input: StartBookingInput): Promise<{ url: str
       cancelUrl: `${base}/avbruten?b=${booking.manage_token}`,
       paymentMethods: getSettings(studio.settings).paymentMethods,
     });
-    await db().from('bookings').update({ stripe_checkout_id: checkout.id }).eq('id', booking.id);
+    await db().from('bookings').update({ stripe_checkout_id: checkout.id, payment_provider: 'stripe' }).eq('id', booking.id);
     return { url: checkout.url, bookingId: booking.id };
   } catch (e: any) {
     await db().rpc('release_booking', { p_booking: booking.id, p_status: 'expired', p_by: 'system' });
     console.error('Checkout-fel', e?.message);
-    if (/swish/i.test(e?.message ?? '')) {
-      throw new BookingError('Swish är inte aktiverat hos studion ännu. Kontakta studion så löser de det.');
-    }
     throw new BookingError('Betalningen kunde inte startas: ' + (e?.message ?? 'okänt fel'));
   }
 }
@@ -218,8 +238,18 @@ export async function startBooking(input: StartBookingInput): Promise<{ url: str
 /** Bekräftar en bokning. Säker att anropa flera gånger. */
 export async function finalizeBooking(
   bookingId: string,
-  payment: { paidOre: number; method: string; paymentIntent?: string | null },
+  payment: {
+    paidOre: number;
+    method: string;
+    provider?: 'swish' | 'stripe';
+    paymentIntent?: string | null;
+    swishReference?: string | null;
+  },
 ) {
+  const paymentFields: Record<string, unknown> = {};
+  if (payment.provider) paymentFields.payment_provider = payment.provider;
+  if (payment.paymentIntent) paymentFields.stripe_payment_intent = payment.paymentIntent;
+  if (payment.swishReference) paymentFields.swish_payment_reference = payment.swishReference;
   const { data: updated } = await db()
     .from('bookings')
     .update({
@@ -227,7 +257,7 @@ export async function finalizeBooking(
       confirmed_at: new Date().toISOString(),
       paid_ore: payment.paidOre,
       payment_method: payment.method,
-      stripe_payment_intent: payment.paymentIntent ?? null,
+      ...paymentFields,
       expires_at: null,
     })
     .eq('id', bookingId)
@@ -238,14 +268,20 @@ export async function finalizeBooking(
   if (!updated) {
     // Redan bekräftad = inget att göra. Utgången men betald = återbetala direkt.
     const existing = await getBooking(bookingId);
-    if (existing && (existing.status === 'expired' || existing.status === 'cancelled') && payment.paidOre > 0 && payment.paymentIntent) {
+    const hasPayment = !!(payment.paymentIntent || payment.swishReference);
+    if (existing && (existing.status === 'expired' || existing.status === 'cancelled') && payment.paidOre > 0 && hasPayment && existing.refunded_ore === 0) {
       const studio = await getStudioById(existing.studio_id);
       if (studio) {
-        await refundPayment(studio, payment.paymentIntent, payment.paidOre);
         await db()
           .from('bookings')
-          .update({ paid_ore: payment.paidOre, refunded_ore: payment.paidOre, stripe_payment_intent: payment.paymentIntent })
+          .update({ paid_ore: payment.paidOre, refunded_ore: payment.paidOre, ...paymentFields })
           .eq('id', bookingId);
+        await refundBookingPayment(
+          studio,
+          { ...existing, ...(paymentFields as any), payment_provider: payment.provider ?? existing.payment_provider },
+          payment.paidOre,
+          `Återbetalning ${existing.title}`,
+        );
         await queueTemplated({
           studio,
           to: existing.customers!.email,
@@ -443,7 +479,7 @@ export async function cancelBooking(b: Booking, studio: Studio, opts: CancelOpti
   const sessions = await bookingSessions(b);
   const released = await db().rpc('release_booking', { p_booking: b.id, p_status: 'cancelled', p_by: opts.by });
   if (released.error) throw new Error(released.error.message);
-  if (b.status === 'pending' && b.stripe_checkout_id) await expireCheckout(studio, b.stripe_checkout_id);
+  if (b.status === 'pending') await abortPendingPayment(studio, b);
 
   let outcome = 'Bokningen är avbokad.';
   const refundable = Math.max(0, b.paid_ore - b.refunded_ore);
@@ -451,10 +487,10 @@ export async function cancelBooking(b: Booking, studio: Studio, opts: CancelOpti
 
   if (b.status === 'confirmed' && opts.refund === 'money') {
     const amount = Math.min(opts.amountOre ?? refundable, refundable);
-    if (amount > 0 && b.stripe_payment_intent) {
-      await refundPayment(studio, b.stripe_payment_intent, amount);
+    if (amount > 0 && canRefundMoney(b)) {
+      await refundBookingPayment(studio, b, amount, `Återbetalning ${b.title}`);
       await db().from('bookings').update({ refunded_ore: b.refunded_ore + amount }).eq('id', b.id);
-      outcome = `Bokningen är avbokad och ${formatKr(amount)} återbetalas till samma betalsätt (oftast inom några minuter för Swish, några dagar för kort).`;
+      outcome = `Bokningen är avbokad och ${formatKr(amount)} återbetalas till samma betalsätt (oftast inom några minuter med Swish).`;
     }
     // Det som betalades med tillgodo/presentkort kommer tillbaka som tillgodo.
     if (b.voucher_ore > 0 && opts.amountOre === undefined) {
@@ -553,10 +589,10 @@ export async function cancelSession(
         if (refund === 'credit' && perSession > 0) {
           await issueCredit(studio, b.customers!.email, b.customers?.name ?? null, perSession, `Inställt tillfälle: ${b.title}`);
           blocks.push({ type: 'note', text: `Du får ${formatKr(perSession)} som tillgodo för det inställda tillfället.` });
-        } else if (refund === 'money' && perSession > 0 && b.stripe_payment_intent) {
+        } else if (refund === 'money' && perSession > 0 && canRefundMoney(b)) {
           const amount = Math.min(perSession, b.paid_ore - b.refunded_ore);
           if (amount > 0) {
-            await refundPayment(studio, b.stripe_payment_intent, amount);
+            await refundBookingPayment(studio, b, amount, `Inställt tillfälle ${b.title}`);
             await db().from('bookings').update({ refunded_ore: b.refunded_ore + amount }).eq('id', b.id);
             blocks.push({ type: 'note', text: `${formatKr(amount)} återbetalas för det inställda tillfället.` });
           }
@@ -670,21 +706,9 @@ export async function messageParticipants(studio: Studio, sessionId: string, sub
   return bookings.length;
 }
 
-/** Om webhooken dröjer: fråga Stripe direkt och bekräfta om betalningen är klar. */
+/** Fråga betalleverantören direkt om betalningen är klar (om webhook/callback dröjer). */
 export async function syncFromStripe(b: Booking, studio: Studio) {
-  if (b.status !== 'pending' || !b.stripe_checkout_id) return;
-  try {
-    const cs: any = await retrieveCheckout(studio, b.stripe_checkout_id);
-    if (cs.payment_status === 'paid') {
-      await finalizeBooking(b.id, {
-        paidOre: cs.amount_total ?? b.amount_ore,
-        method: 'Stripe',
-        paymentIntent: typeof cs.payment_intent === 'string' ? cs.payment_intent : cs.payment_intent?.id,
-      });
-    }
-  } catch {
-    /* webhooken tar det */
-  }
+  await syncPayment(b, studio);
 }
 
 export { friendly as friendlyBookingError };

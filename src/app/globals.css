@@ -354,3 +354,21 @@ details.box { border-radius: var(--radius); }
 .cal .ev { background: #eaf4e3; border-left-color: var(--mint); }
 .cal .ev.course { background: #f4efe2; border-left-color: #b3873f; }
 .hero.bleed { width: 100vw; margin-left: calc(50% - 50vw); }
+
+/* Swish-betalning */
+.pay-card { max-width: 560px; margin: 0 auto; padding: 30px 28px; }
+.pay-card h1 { font-size: clamp(2.4rem, 7vw, 3.2rem); }
+.pay-body { border-top: 1px solid var(--ink); margin-top: 18px; padding-top: 26px; }
+.swish-status { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: -0.02em; margin: 14px 0 6px; }
+.swish-status.ok { color: var(--ok); }
+.swish-btn { min-height: 56px; padding: 14px 40px; font-size: 1.1rem; }
+.swish-qr { display: inline-block; padding: 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+.swish-qr svg { display: block; width: 240px; height: 240px; }
+.swish-spinner { width: 34px; height: 34px; margin: 6px auto 0; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--mint); animation: swish-spin 0.9s linear infinite; }
+@keyframes swish-spin { to { transform: rotate(360deg); } }
+.testbadge { display: inline-block; background: var(--lime); color: var(--forest); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+.swish-step { display: flex; gap: 14px; padding: 18px 0; border-top: 1px solid var(--line); }
+.swish-step h3 { font-size: 1.05rem; }
+.swish-step-n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; background: var(--surface-2); color: var(--ink-2); }
+.swish-step-n.done { background: var(--mint); color: var(--forest); }
+textarea.codebox { width: 100%; border: 1px solid var(--line); }

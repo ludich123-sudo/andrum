@@ -26,14 +26,15 @@ Gör stegen i ordning. Spara alla nycklar du kopierar i en anteckning medan du j
 4. **API Keys → Create API key** (Full access). Kopiera nyckeln.
 5. Bestäm avsändaradress, t.ex. `bokning@hennesdoman.se`.
 
-### 3. Stripe – betalningen
+### 3. Swish – betalningen
 
-1. Skapa konto på [stripe.com](https://stripe.com) (det här är *ditt* plattformskonto).
-2. Se till att **Test mode** är på (reglaget uppe till höger) – vi testar först.
-3. Gå till **Connect → Get started** och välj att du bygger en plattform. Fyll i plattformsprofilen.
-4. **Developers → API keys**: kopiera **Secret key** (börjar med `sk_test_`).
+Kunderna betalar med **Swish Handel** direkt till studions företagskonto. Ingen mellanhand.
 
-Du behöver **inte** skapa någon webhook – appen gör det själv.
+1. Studion ansöker om **Swish Handel** i sin internetbank för företag och får ett Swishnummer som börjar på 123.
+2. Allt annat görs i adminpanelen under **Inställningar → Betalning med Swish** (steg 1–4 där): Swishnummer, certifikatbegäran, certifikat från [Swish certifikatportal](https://portal.swish.nu) och test.
+3. Fram till dess står studion i **testläge**: hela bokningen går att prova och betalningen simuleras med en knapp.
+
+Stripe behövs inte. Vill en studio hellre ta kort finns Stripe kvar som tillval under **Kortbetalning via Stripe**.
 
 ### 4. GitHub + Vercel – appen
 
@@ -45,7 +46,6 @@ Du behöver **inte** skapa någon webhook – appen gör det själv.
 | --- | --- |
 | `SUPABASE_URL` | Project URL från steg 1 |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role-nyckeln från steg 1 |
-| `STRIPE_SECRET_KEY` | `sk_test_…` från steg 3 |
 | `RESEND_API_KEY` | från steg 2 |
 | `EMAIL_FROM` | t.ex. `bokning@hennesdoman.se` |
 | `SUPERADMIN_EMAILS` | din egen e-post |
@@ -79,14 +79,13 @@ Under **Inställningar → Dela bokningssidan** finns länken och en färdig kna
 
 ### 8. Testa – och gå live
 
-**Testa i testläge:** boka en kurs på bokningssidan och betala med kortet `4242 4242 4242 4242` (valfritt framtida datum och CVC). Kontrollera mejlet, avboka via länken och se att återbetalningen syns.
+**Testa i testläge:** boka en kurs på bokningssidan. På betalsidan trycker du **Godkänn betalning (test)**. Kontrollera mejlet, avboka via länken och se att avbokningen fungerar.
 
 **Gå live:**
 
-1. Stripe: stäng av Test mode → **Developers → API keys** → kopiera `sk_live_…`.
-2. Vercel: byt `STRIPE_SECRET_KEY` till live-nyckeln → **Redeploy**.
-3. Öppna **System** i adminpanelen – den skapar live-webhooken automatiskt.
-4. Kunden trycker **Koppla Stripe** en gång till (test- och live-konton är separata hos Stripe) och slår på Swish.
+1. Inställningar → Betalning med Swish: följ steg 1–3 (Swishnummer, certifikatbegäran, certifikatet från Swish).
+2. Tryck **Testa anslutningen** och sedan **Ta emot riktiga betalningar**.
+3. Gör en riktig bokning för 1 kr och avboka den, så ser du att pengarna kommer tillbaka.
 
 ---
 

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import AppointmentPicker from '@/components/AppointmentPicker';
 import { db } from '@/lib/db';
 import { formatKr } from '@/lib/money';
-import { getSettings, PAYMENT_LABEL } from '@/lib/settings';
+import { getSettings, payLabel } from '@/lib/settings';
 import { getStudioBySlug } from '@/lib/studio';
 import { Service } from '@/lib/types';
 import { addDaysKey, toDateKey, weekdayOfKey, zonedToUtc } from '@/lib/tz';
@@ -62,7 +62,7 @@ export default async function AppointmentPage({ params }: { params: Promise<{ sl
           isFree={service.price_ore <= 0}
           terms={settings.terms}
           allowVouchers={settings.allowVouchers}
-          payLabel={PAYMENT_LABEL[settings.paymentMethods]}
+          payLabel={payLabel(settings)}
         />
       </div>
     </main>

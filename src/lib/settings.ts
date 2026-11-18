@@ -2,6 +2,7 @@
 // kan gå live utan att röra något.
 
 export type PaymentMethods = 'swish' | 'swish_card' | 'all';
+export type PaymentProvider = 'swish' | 'stripe';
 
 export const PAYMENT_LABEL: Record<PaymentMethods, string> = {
   swish: 'Swish',
@@ -27,6 +28,8 @@ export type StudioSettings = {
   bookingNote: string;
   allowVouchers: boolean;
   paymentMethods: PaymentMethods;
+  /** Swish Handel direkt (standard) eller kort via Stripe. */
+  paymentProvider: PaymentProvider;
 };
 
 export const DAY_NAMES = ['', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
@@ -54,6 +57,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   bookingNote: '',
   allowVouchers: true,
   paymentMethods: 'swish',
+  paymentProvider: 'swish',
 };
 
 export function getSettings(raw: unknown): StudioSettings {
@@ -64,4 +68,9 @@ export function getSettings(raw: unknown): StudioSettings {
     (d) => hours.find((h) => h && h.day === d.day) ?? d,
   );
   return merged;
+}
+
+/** Texten "Du betalar med …" för den valda betalningslösningen. */
+export function payLabel(s: StudioSettings): string {
+  return s.paymentProvider === 'stripe' ? PAYMENT_LABEL[s.paymentMethods] : 'Swish';
 }

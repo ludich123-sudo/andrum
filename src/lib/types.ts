@@ -17,6 +17,14 @@ export type Studio = {
   platform_fee_percent: number;
   settings: any;
   created_at: string;
+  swish_number: string | null;
+  swish_mode: 'off' | 'demo' | 'live';
+  swish_key_enc: string | null;
+  swish_csr_pem: string | null;
+  swish_cert_pem: string | null;
+  swish_pending_key_enc: string | null;
+  swish_ca_pem: string | null;
+  swish_cert_expires_at: string | null;
 };
 
 export type ServiceKind = 'class' | 'course' | 'appointment';
@@ -91,6 +99,12 @@ export type Booking = {
   manage_token: string;
   stripe_checkout_id: string | null;
   stripe_payment_intent: string | null;
+  payment_provider: 'swish' | 'stripe' | null;
+  swish_payment_id: string | null;
+  swish_token: string | null;
+  swish_payment_reference: string | null;
+  swish_requested_at: string | null;
+  swish_error: string | null;
   waitlist_id: string | null;
   source: 'online' | 'manual';
   note: string | null;

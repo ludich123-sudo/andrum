@@ -4,7 +4,7 @@ import BookingForm from '@/components/BookingForm';
 import WaitlistForm from '@/components/WaitlistForm';
 import { db } from '@/lib/db';
 import { formatKr } from '@/lib/money';
-import { getSettings, PAYMENT_LABEL } from '@/lib/settings';
+import { getSettings, payLabel } from '@/lib/settings';
 import { getStudioBySlug } from '@/lib/studio';
 import { Service, Session } from '@/lib/types';
 import { capitalize, formatDay, formatTime } from '@/lib/tz';
@@ -77,7 +77,7 @@ export default async function ClassPage({
               isFree={session.price_ore <= 0}
               terms={settings.terms}
               allowVouchers={settings.allowVouchers}
-              payLabel={PAYMENT_LABEL[settings.paymentMethods]}
+              payLabel={payLabel(settings)}
               waitlistToken={validOffer?.token ?? null}
               prefillEmail={validOffer?.email}
               prefillName={validOffer?.name ?? undefined}

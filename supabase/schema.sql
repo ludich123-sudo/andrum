@@ -266,6 +266,32 @@ create table if not exists audit_log (
 create index if not exists audit_studio_idx on audit_log(studio_id, created_at desc);
 
 -- ---------------------------------------------------------------------
+-- Swish Handel (version 2). Nya kolumner läggs till på befintliga tabeller.
+-- ---------------------------------------------------------------------
+alter table studios add column if not exists swish_number text;
+alter table studios add column if not exists swish_mode text not null default 'demo';
+alter table studios add column if not exists swish_key_enc text;
+alter table studios add column if not exists swish_csr_pem text;
+alter table studios add column if not exists swish_cert_pem text;
+alter table studios add column if not exists swish_pending_key_enc text;
+alter table studios add column if not exists swish_ca_pem text;
+alter table studios add column if not exists swish_cert_expires_at timestamptz;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'studios_swish_mode_check') then
+    alter table studios add constraint studios_swish_mode_check check (swish_mode in ('off','demo','live'));
+  end if;
+end $$;
+
+alter table bookings add column if not exists payment_provider text;
+alter table bookings add column if not exists swish_payment_id text;
+alter table bookings add column if not exists swish_token text;
+alter table bookings add column if not exists swish_payment_reference text;
+alter table bookings add column if not exists swish_requested_at timestamptz;
+alter table bookings add column if not exists swish_error text;
+create index if not exists bookings_swish_id_idx on bookings(swish_payment_id);
+create index if not exists bookings_swish_ref_idx on bookings(swish_payment_reference);
+
+-- ---------------------------------------------------------------------
 -- Funktioner
 -- ---------------------------------------------------------------------
 
@@ -582,5 +608,5 @@ begin
   end if;
 end $$;
 
-insert into app_config (key, value) values ('schema_version', '1')
+insert into app_config (key, value) values ('schema_version', '2')
 on conflict (key) do update set value = excluded.value, updated_at = now();

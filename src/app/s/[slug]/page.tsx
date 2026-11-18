@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatKr } from '@/lib/money';
 import { getAppointmentServices, getClasses, getCourses } from '@/lib/public';
-import { getSettings, PAYMENT_LABEL } from '@/lib/settings';
+import { getSettings, payLabel } from '@/lib/settings';
 import { getStudioBySlug } from '@/lib/studio';
 import { formatDay, formatTime, toDateKey, weekdayPlural, capitalize } from '@/lib/tz';
 
@@ -52,7 +52,7 @@ export default async function StudioPage({ params }: { params: Promise<{ slug: s
             {services.length > 0 && <a href="#behandlingar">Behandlingar</a>}
           </nav>
           <div className="hero-points">
-            <div><b>✓</b> Betala enkelt med {PAYMENT_LABEL[settings.paymentMethods]}</div>
+            <div><b>✓</b> Betala enkelt med {payLabel(settings)}</div>
             <div><b>✓</b> Bekräftelse och påminnelse via mejl</div>
             <div><b>✓</b> Avboka själv via länken i mejlet</div>
           </div>

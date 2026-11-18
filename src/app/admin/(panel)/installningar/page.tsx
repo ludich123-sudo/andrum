@@ -14,7 +14,9 @@ import {
   saveProfileAction,
   saveRulesAction,
   saveTemplateAction,
+  setPaymentProviderAction,
 } from '../../actions';
+import SwishSettings from './SwishSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,47 +47,69 @@ export default async function SettingsPage({
         <h1>Inställningar</h1>
       </div>
       <Flash ok={sp.ok} err={sp.err} />
-      {sp.stripe === 'klar' && stripeReady && <div className="notice ok">Stripe är kopplat. Kom ihåg att slå på Swish i ditt Stripe-konto (se Betalning nedan).</div>}
+      {sp.stripe === 'klar' && stripeReady && <div className="notice ok">Stripe är kopplat.</div>}
 
-      <details className="box" id="betalning" open={!stripeReady}>
+      <details className="box" id="betalning" open={studio.swish_mode !== 'live' && s.paymentProvider !== 'stripe'}>
         <summary>
-          Betalning
-          {stripeReady ? <span className="badge ok">Klar</span> : <span className="badge warn">Inte kopplad</span>}
+          Betalning med Swish
+          {s.paymentProvider === 'stripe' ? (
+            <span className="badge">Kort via Stripe används</span>
+          ) : studio.swish_mode === 'live' && studio.swish_cert_pem ? (
+            <span className="badge ok">Live</span>
+          ) : studio.swish_mode === 'demo' ? (
+            <span className="testbadge">Testläge</span>
+          ) : (
+            <span className="badge warn">Inte kopplad</span>
+          )}
         </summary>
         <div className="inner">
-          {isTestMode() && <div className="notice warn">Testläge: inga riktiga pengar dras. Använd Stripes testkort 4242 4242 4242 4242.</div>}
-          {stripeReady ? (
+          <SwishSettings studio={studio} />
+        </div>
+      </details>
+
+      <details className="box">
+        <summary>
+          Kortbetalning via Stripe <span className="small muted" style={{ fontWeight: 400 }}>(valfritt)</span>
+          {s.paymentProvider === 'stripe' && <span className="badge ok">Används</span>}
+        </summary>
+        <div className="inner">
+          <p className="small muted">
+            Vill du hellre ta betalt med kort, Apple Pay och Google Pay kan du använda Stripe i stället för Swish. De flesta behöver
+            inte det här.
+          </p>
+          <form action={setPaymentProviderAction} className="row mb2">
+            <select name="provider" defaultValue={s.paymentProvider} style={{ maxWidth: 260 }}>
+              <option value="swish">Swish (rekommenderas)</option>
+              <option value="stripe">Kort via Stripe</option>
+            </select>
+            <button className="btn small">Spara</button>
+          </form>
+          {s.paymentProvider === 'stripe' && (
             <>
-              <p>Betalningarna går direkt till ditt Stripe-konto. Återbetalningar sköts härifrån automatiskt.</p>
-              <p className="small muted">
-                Swish slår du på i Stripe under Settings → Payment methods → Swish. Utbetalningar, kvitton och bokföringsunderlag
-                hittar du i Stripe.
-              </p>
-              <form action={savePaymentMethodsAction} className="mb2">
-                <label className="field" style={{ maxWidth: 360 }}>
-                  <span>Kunderna kan betala med</span>
-                  <select name="paymentMethods" defaultValue={s.paymentMethods}>
-                    <option value="swish">Bara Swish</option>
-                    <option value="swish_card">Swish och kort</option>
-                    <option value="all">Alla betalsätt som är på i Stripe</option>
-                  </select>
-                </label>
-                <button className="btn primary small">Spara</button>
-              </form>
-              <form action={refreshStripeAction}><button className="btn small">Kontrollera kopplingen</button></form>
-            </>
-          ) : (
-            <>
-              <p>
-                Koppla ett Stripe-konto så kan kunderna betala direkt när de bokar. Det tar ungefär 10 minuter och du behöver
-                organisationsnummer, bankkonto och BankID till hands.
-              </p>
-              <div className="row">
-                <form action={connectStripeAction}><button className="btn primary">{studio.stripe_account_id ? 'Fortsätt kopplingen' : 'Koppla Stripe'}</button></form>
-                {studio.stripe_account_id && (
-                  <form action={refreshStripeAction}><button className="btn">Jag är klar – kontrollera</button></form>
-                )}
-              </div>
+              {isTestMode() && <div className="notice warn">Stripe testläge: använd testkortet 4242 4242 4242 4242.</div>}
+              {stripeReady ? (
+                <>
+                  <form action={savePaymentMethodsAction} className="mb2">
+                    <label className="field" style={{ maxWidth: 360 }}>
+                      <span>Betalsätt hos Stripe</span>
+                      <select name="paymentMethods" defaultValue={s.paymentMethods}>
+                        <option value="swish">Bara Swish</option>
+                        <option value="swish_card">Swish och kort</option>
+                        <option value="all">Alla betalsätt som är på i Stripe</option>
+                      </select>
+                    </label>
+                    <button className="btn primary small">Spara</button>
+                  </form>
+                  <form action={refreshStripeAction}><button className="btn small">Kontrollera kopplingen</button></form>
+                </>
+              ) : (
+                <div className="row">
+                  <form action={connectStripeAction}><button className="btn primary small">{studio.stripe_account_id ? 'Fortsätt kopplingen' : 'Koppla Stripe'}</button></form>
+                  {studio.stripe_account_id && (
+                    <form action={refreshStripeAction}><button className="btn small">Jag är klar – kontrollera</button></form>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

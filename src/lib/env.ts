@@ -26,7 +26,6 @@ export const REQUIRED_ENV: { key: string; ok: () => boolean; help: string }[] = 
   { key: 'Appens adress', ok: () => !!env.appUrl, help: 'Sätts automatiskt på Vercel. Annars: NEXT_PUBLIC_APP_URL' },
   { key: 'SUPABASE_URL', ok: () => !!env.supabaseUrl, help: 'Supabase → Project Settings → API → Project URL' },
   { key: 'SUPABASE_SERVICE_ROLE_KEY', ok: () => !!env.supabaseServiceKey, help: 'Supabase → Project Settings → API → service_role' },
-  { key: 'STRIPE_SECRET_KEY', ok: () => !!env.stripeSecretKey, help: 'Stripe → Developers → API keys → Secret key' },
   { key: 'RESEND_API_KEY', ok: () => !!env.resendApiKey, help: 'Resend → API Keys' },
   { key: 'EMAIL_FROM', ok: () => !!env.emailFrom, help: 'T.ex. bokning@dindoman.se (domänen verifierad i Resend)' },
   { key: 'SUPERADMIN_EMAILS', ok: () => env.superadmins.length > 0, help: 'Din e-post, du blir superadmin' },
